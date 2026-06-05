@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rocketlane · Site Map</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #080B11;
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── HEADER ─────────────────────────────────────────── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(8,11,17,0.94); backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 100;
+}
+#logo-mark {
+  width: 30px; height: 30px; background: #0E61FE; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white; letter-spacing: -0.5px; flex-shrink: 0;
+}
+#header h1 { font-size: 13px; font-weight: 600; color: #F1F5F9; flex: 1; }
+#header h1 span { color: #475569; font-weight: 400; }
+#search-wrap { position: relative; display: flex; align-items: center; }
+#search-icon { position: absolute; left: 10px; color: #475569; font-size: 12px; pointer-events: none; }
+#search-box {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px; padding: 6px 12px 6px 30px; color: #E2E8F0;
+  font-size: 12px; width: 210px; outline: none; transition: border-color 0.2s, background 0.2s;
+}
+#search-box:focus { border-color: #0E61FE; background: rgba(14,97,254,0.06); }
+#search-box::placeholder { color: #334155; }
+#stats {
+  font-size: 11px; color: #334155; padding: 3px 10px;
+  background: rgba(255,255,255,0.03); border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.06); white-space: nowrap;
+}
+#hint { font-size: 11px; color: #1E293B; white-space: nowrap; }
+
+/* ── GRAPH CANVAS ───────────────────────────────────── */
+#graph-container {
+  position: fixed; inset: 52px 0 0 0;
+  transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+#graph-container.panel-open { right: 340px; }
+svg#graph { width: 100%; height: 100%; cursor: grab; }
+svg#graph:active { cursor: grabbing; }
+
+/* Node / link states */
+.node { cursor: pointer; }
+.node circle { transition: r 0.15s, filter 0.15s; }
+.node text   { pointer-events: none; user-select: none; }
+.link { fill: none; }
+.node.dimmed circle { opacity: 0.07; }
+.node.dimmed text   { opacity: 0; }
+.link.dimmed        { opacity: 0.04; }
+.link.lit           { stroke-opacity: 0.8 !important; stroke-width: 2px !important; }
+.node.selected circle { stroke-width: 3px !important; }
+
+/* ── SIDE PANEL ─────────────────────────────────────── */
+#panel {
+  position: fixed; top: 52px; right: -340px; bottom: 0; width: 340px;
+  background: rgba(10,13,20,0.97); backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-direction: column;
+  transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+  z-index: 90; overflow: hidden;
+}
+#panel.open { right: 0; }
+
+/* Panel header bar */
+#panel-bar {
+  display: flex; align-items: center; gap: 8px; padding: 14px 16px 0;
+  flex-shrink: 0;
+}
+#panel-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  padding: 3px 9px; border-radius: 20px; border: 1px solid currentColor;
+  text-transform: uppercase; opacity: 0.9;
+}
+#panel-depth-tag {
+  font-size: 10px; color: #334155; padding: 3px 8px;
+  background: rgba(255,255,255,0.04); border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+#panel-close {
+  margin-left: auto; background: none; border: none; color: #475569;
+  font-size: 16px; cursor: pointer; padding: 2px 4px;
+  border-radius: 4px; transition: color 0.15s, background 0.15s; line-height: 1;
+}
+#panel-close:hover { color: #94A3B8; background: rgba(255,255,255,0.06); }
+
+/* Panel title + url */
+#panel-title {
+  font-size: 20px; font-weight: 700; color: #F1F5F9;
+  padding: 12px 16px 4px; line-height: 1.25;
+}
+#panel-url-row {
+  display: flex; align-items: center; gap: 6px; padding: 0 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#panel-url {
+  font-family: 'Menlo', 'Monaco', monospace; font-size: 11px;
+  color: #475569; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.url-btn {
+  display: flex; align-items: center; gap: 4px; background: none;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+  color: #64748B; font-size: 10px; font-weight: 500; padding: 4px 8px;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+}
+.url-btn:hover { border-color: rgba(255,255,255,0.2); color: #94A3B8; background: rgba(255,255,255,0.05); }
+.url-btn.primary { border-color: #0E61FE44; color: #60A5FA; }
+.url-btn.primary:hover { border-color: #0E61FE; background: rgba(14,97,254,0.12); color: #93C5FD; }
+
+/* Scrollable body */
+#panel-body { flex: 1; overflow-y: auto; padding: 14px 16px 20px; }
+#panel-body::-webkit-scrollbar { width: 3px; }
+#panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Description */
+#panel-desc {
+  font-size: 12.5px; color: #94A3B8; line-height: 1.6; margin-bottom: 16px;
+  padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Connection sections */
+.conn-section { margin-bottom: 16px; }
+.conn-section h4 {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #334155; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.conn-section h4 .conn-count {
+  font-size: 10px; color: #1E293B; padding: 1px 6px;
+  background: rgba(255,255,255,0.04); border-radius: 10px; letter-spacing: 0;
+  text-transform: none;
+}
+.conn-chip {
+  display: flex; align-items: center; gap: 7px; padding: 7px 10px;
+  border-radius: 7px; border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02); margin-bottom: 5px;
+  cursor: pointer; transition: all 0.15s; text-decoration: none;
+}
+.conn-chip:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.conn-label { font-size: 12px; color: #CBD5E1; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn-group { font-size: 10px; color: #334155; }
+.conn-arrow { color: #334155; font-size: 10px; flex-shrink: 0; }
+
+/* ── LEGEND ─────────────────────────────────────────── */
+#legend {
+  position: fixed; bottom: 20px; left: 20px;
+  background: rgba(8,11,17,0.90); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+  padding: 12px 14px; width: 180px; z-index: 50;
+  max-height: calc(100vh - 120px); overflow-y: auto;
+  transition: left 0.35s;
+}
+#legend::-webkit-scrollbar { width: 3px; }
+#legend::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+#legend h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #334155; margin-bottom: 8px; font-weight: 600; }
+.legend-item { display: flex; align-items: center; gap: 7px; padding: 3px 4px; cursor: pointer; border-radius: 5px; transition: background 0.15s, opacity 0.2s; user-select: none; }
+.legend-item:hover { background: rgba(255,255,255,0.04); }
+.legend-item.muted { opacity: 0.25; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transition: transform 0.15s; }
+.legend-item:hover .legend-dot { transform: scale(1.4); }
+.legend-label { font-size: 11px; color: #94A3B8; flex: 1; }
+.legend-count  { font-size: 10px; color: #334155; }
+
+/* ── CONTROLS ───────────────────────────────────────── */
+#controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 6px; z-index: 50; transition: right 0.35s; }
+#controls.panel-open { right: 360px; }
+.ctrl-btn {
+  width: 34px; height: 34px; background: rgba(10,14,22,0.88); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 8px;
+  color: #475569; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.ctrl-btn:hover { background: rgba(14,97,254,0.18); border-color: rgba(14,97,254,0.5); color: #3B82F6; }
+
+/* ── DEPTH KEY ───────────────────────────────────────── */
+#depth-key {
+  position: fixed; top: 64px; right: 16px;
+  background: rgba(8,11,17,0.88); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 8px;
+  padding: 9px 12px; z-index: 50; transition: right 0.35s;
+}
+#depth-key.panel-open { right: 356px; }
+#depth-key h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #334155; margin-bottom: 8px; font-weight: 600; }
+.depth-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.depth-circle { border-radius: 50%; background: #475569; flex-shrink: 0; }
+.depth-label { font-size: 11px; color: #64748B; }
+
+/* ── TOOLTIP ─────────────────────────────────────────── */
+#tooltip {
+  position: fixed; pointer-events: none; background: rgba(10,14,22,0.95);
+  backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 7px 11px; z-index: 200;
+  opacity: 0; transform: translateY(3px); transition: opacity 0.12s, transform 0.12s;
+}
+#tooltip.show { opacity: 1; transform: translateY(0); }
+#tooltip .tt-label { font-size: 12px; font-weight: 600; color: #F1F5F9; }
+#tooltip .tt-sub   { font-size: 10px; color: #475569; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="logo-mark">RL</div>
+  <h1>Rocketlane <span>· Interactive Site Map</span></h1>
+  <div id="search-wrap">
+    <span id="search-icon">⌕</span>
+    <input id="search-box" type="text" placeholder="Search pages…" autocomplete="off" />
+  </div>
+  <div id="stats">— nodes · — links</div>
+  <div id="hint">Click any node to explore</div>
+</div>
+
+<div id="graph-container">
+  <svg id="graph"></svg>
+</div>
+
+<!-- ── SIDE PANEL ── -->
+<div id="panel">
+  <div id="panel-bar">
+    <span id="panel-badge">Group</span>
+    <span id="panel-depth-tag">Level 1</span>
+    <button id="panel-close" title="Close">✕</button>
+  </div>
+  <div id="panel-title">Page</div>
+  <div id="panel-url-row">
+    <span id="panel-url">/</span>
+    <button class="url-btn primary" id="btn-visit">Open ↗</button>
+    <button class="url-btn" id="btn-copy">Copy URL</button>
+  </div>
+  <div id="panel-body">
+    <div id="panel-desc"></div>
+    <div class="conn-section" id="sec-from">
+      <h4>Linked from <span class="conn-count" id="from-count">0</span></h4>
+      <div id="from-list"></div>
+    </div>
+    <div class="conn-section" id="sec-to">
+      <h4>Links to <span class="conn-count" id="to-count">0</span></h4>
+      <div id="to-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip">
+  <div class="tt-label"></div>
+  <div class="tt-sub"></div>
+</div>
+
+<div id="legend"><h3>Sections</h3></div>
+
+<div id="depth-key">
+  <h4>Depth</h4>
+  <div class="depth-row"><div class="depth-circle" style="width:18px;height:18px"></div><span class="depth-label">Root</span></div>
+  <div class="depth-row"><div class="depth-circle" style="width:11px;height:11px"></div><span class="depth-label">Level 1</span></div>
+  <div class="depth-row"><div class="depth-circle" style="width:7px;height:7px"></div><span class="depth-label">Level 2</span></div>
+  <div class="depth-row"><div class="depth-circle" style="width:5px;height:5px"></div><span class="depth-label">Level 3</span></div>
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" id="btn-fit"     title="Fit to screen (0)">⊡</button>
+  <button class="ctrl-btn" id="btn-zoomin"  title="Zoom in (+)">+</button>
+  <button class="ctrl-btn" id="btn-zoomout" title="Zoom out (−)">−</button>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ── GROUPS ────────────────────────────────────────────────────────────────────
+const GROUPS = {
+  home:            { label: "Home",           color: "#F9D64C" },
+  product:         { label: "Product",        color: "#0E61FE" },
+  industry:        { label: "Industry",       color: "#A855F7" },
+  compare:         { label: "Compare",        color: "#F59E0B" },
+  customers:       { label: "Customers",      color: "#10B981" },
+  blogs:           { label: "Blog",           color: "#22D3EE" },
+  "blog-category": { label: "Blog Category",  color: "#0891B2" },
+  "blog-post":     { label: "Blog Post",      color: "#155E75" },
+  resources:       { label: "Resources",      color: "#14B8A6" },
+  resource:        { label: "Resource",       color: "#0D9488" },
+  media:           { label: "Media & Events", color: "#F97316" },
+  legal:           { label: "Legal",          color: "#6B7280" },
+  community:       { label: "Community",      color: "#EC4899" },
+  action:          { label: "CTA / Actions",  color: "#EF4444" },
+};
+
+const DEPTH_LABEL = ["Root", "Level 1", "Level 2", "Level 3"];
+
+// ── PAGE DESCRIPTIONS ─────────────────────────────────────────────────────────
+const DESC = {
+  "/":                                         "Rocketlane's main marketing homepage — product overview, social proof, customer logos, and primary CTAs for the full platform.",
+  "/agentic-psa":                              "Rocketlane's AI-powered PSA. Autonomous agents handle repetitive professional services operations — status updates, risk flagging, capacity alerts, and more.",
+  "/project-management-process":               "Core project delivery hub. Covers project templates, Gantt views, milestones, task dependencies, and structured implementation workflows.",
+  "/project-management-process/automations":  "Rule-based and trigger-driven workflow automation. Automate kickoffs, status changes, escalations, and client notifications without manual effort.",
+  "/project-management-process/partner-central": "Dedicated portal for managing partner-led and channel implementations — visibility, collaboration, and governance across partner engagements.",
+  "/people-finance":                           "People & finance management hub. Covers resource allocation, utilization tracking, financial forecasting, billing, and revenue recognition.",
+  "/people-finance/resource-management-software": "Capacity planning, resource allocation, and utilization dashboards. Helps PS leaders balance team workload against pipeline demand.",
+  "/people-finance/timetracking-software":    "Timesheet and time-tracking tools. Capture billable and non-billable hours, enforce policies, and feed actuals into project financials.",
+  "/customer-portal-experience":              "White-labeled client portal. Gives customers real-time visibility into project health, milestones, and tasks without needing a Rocketlane account.",
+  "/reporting-and-dashboards":                "Analytics and reporting layer. Pre-built and custom dashboards for PS leaders covering utilization, project health, revenue, and delivery KPIs.",
+  "/integrations":                             "Native integrations hub. Connects Rocketlane to Salesforce, Slack, Jira, HubSpot, and more — syncing deal data, tasks, and project updates bidirectionally.",
+  "/integrations/slack":                       "Slack integration deep-dive. Get project status updates, task alerts, and milestone notifications directly in Slack channels.",
+  "/professional-services-automation-software": "The full Rocketlane PSA platform overview — purpose-built for professional services teams to deliver, track, and scale client projects.",
+  "/onboarding-implementation-software":      "Customer onboarding and implementation platform. Structured onboarding projects with templates, portals, and automation for faster time-to-value.",
+  "/nitro-agents":                             "Nitro Agents — Rocketlane's AI-powered task agents that can autonomously execute project actions, fill gaps, and surface risks in real time.",
+  "/aifills":                                  "AI Fills — auto-populate project fields, templates, and status updates using AI trained on your PS team's patterns and historical data.",
+  "/nitropalooza":                             "Nitropalooza — Rocketlane's launch event for the Nitro AI product suite. Showcases the future of agentic professional services automation.",
+  "/customer-experience-accountability":       "CX Accountability features — tracks customer-side actions, commitments, and blockers to ensure both teams stay on track for go-live.",
+  "/industry/saas-customer-onboarding":        "Solution tailored for SaaS companies onboarding enterprise or mid-market customers with complex setup and integration requirements.",
+  "/industry/fintech-customer-onboarding":     "Fintech-specific onboarding workflows — handles compliance checkpoints, regulated data flows, and multi-stakeholder implementations.",
+  "/industry/marketing-customer-onboarding":  "Marketing agency and MarTech client onboarding — structured delivery for campaigns, platform migrations, and strategy engagements.",
+  "/industry/it-consultancy-psa-platform":    "PSA and delivery platform tailored for IT consultancies managing multiple client engagements, billable teams, and subcontractors.",
+  "/compare/rocketlane-vs-guidecx":           "Head-to-head comparison with GuideCX. Covers onboarding features, client portal, reporting, integrations, and pricing.",
+  "/compare/rocketlane-vs-kantata":           "Rocketlane vs Kantata (Mavenlink). Compares PSA depth, resource management, time tracking, and enterprise fit.",
+  "/compare/rocketlane-vs-certinia":          "Rocketlane vs Certinia (FinancialForce). Focuses on Salesforce-native vs best-of-breed PSA trade-offs.",
+  "/compare/rocketlane-vs-smartsheet":        "Rocketlane vs Smartsheet. Highlights purpose-built PS features vs generic project/spreadsheet tools.",
+  "/compare/rocketlane-vs-planview":          "Rocketlane vs Planview. Compares modern PS delivery against legacy enterprise PPM tooling.",
+  "/compare/rocketlane-vs-monday":            "Rocketlane vs Monday.com. Contrasts PS-specific workflows with general project management platforms.",
+  "/compare/rocketlane-vs-asana":             "Rocketlane vs Asana. Highlights client-facing onboarding, PS automation, and revenue management not found in Asana.",
+  "/customers":                                "Customer success stories — real outcomes from PS and onboarding teams using Rocketlane. Metrics on TTV, utilization, NPS, and efficiency gains.",
+  "/blogs":                                    "The Rocketlane blog — strategy, operations, and leadership content for professional services and customer success teams.",
+  "/resources":                                "Free guides, research reports, and templates for PS leaders. Includes state-of-the-industry reports, playbooks, and tool evaluations.",
+  "/tv":                                       "Rocketlane TV — video content library covering PS strategy, product walkthroughs, customer stories, and thought leadership.",
+  "/podcast":                                  "The Rocketlane podcast — conversations with PS leaders, CSMs, and implementation experts on scaling services teams.",
+  "/events":                                   "Upcoming and past Rocketlane events — webinars, community meetups, Propel conferences, and partner events.",
+  "/propel26":                                 "Propel 2026 — Rocketlane's annual professional services conference. Keynotes, workshops, and networking for PS leaders.",
+  "/propel25/ideabook25":                      "Propel 2025 Ideabook — curated insights, frameworks, and ideas shared at Propel 25.",
+  "/pricing":                                  "Rocketlane plans and pricing. Starter, Growth, and Enterprise tiers with feature breakdowns and a free trial CTA.",
+  "/demo":                                     "Book a personalized product demo with the Rocketlane sales team. Tailored to your team's use case and PS maturity.",
+  "/contact-sales":                            "Talk to Rocketlane sales. For teams evaluating the platform, enterprise inquiries, or custom pricing discussions.",
+  "/login":                                    "Log in to your Rocketlane workspace.",
+  "/signup":                                   "Start a free trial or create a new Rocketlane account.",
+  "/partners":                                 "Rocketlane partner program — join as a consulting partner, systems integrator, or technology partner. Co-sell and referral options.",
+  "/psclub":                                   "PS Club — Rocketlane's community for professional services leaders. Peer discussions, benchmarks, and exclusive content.",
+  "/frontline-forum/home":                     "Frontline Forum — a practitioner community for PS managers and ICs. Discussions on delivery challenges, tooling, and best practices.",
+  "/store":                                    "Rocketlane swag store — branded merchandise for team and community members.",
+  "/press":                                    "Rocketlane press room — news coverage, product announcements, funding rounds, and media resources.",
+  "/legal/terms":                              "Rocketlane Terms of Service — the legal agreement governing use of the platform.",
+  "/legal/privacy-policy":                     "Rocketlane Privacy Policy — how user data is collected, stored, processed, and protected.",
+  "/legal/data-processing-agreement":         "Data Processing Agreement (DPA) — GDPR-compliant terms for EU data processing and data controller/processor obligations.",
+  "/responsible-disclosure":                   "Responsible disclosure policy — how to report security vulnerabilities or issues to the Rocketlane security team.",
+  "/trust":                                    "Rocketlane Trust Center — security certifications, compliance posture (SOC 2, HIPAA), uptime SLAs, and data handling practices.",
+  "/privacy-policy":                           "Legacy privacy policy page — redirects to or mirrors the canonical /legal/privacy-policy.",
+  "/maturity-model-report":                    "Professional services maturity model — assess where your team sits across delivery, tooling, and financial management dimensions.",
+  "/free-tools/customer-success-personality-test": "Free CS personality test — helps customer success professionals understand their working style and strengths.",
+  "/free-tools/free-timesheet-calculator":    "Free timesheet calculator — quick tool for estimating billable hours, utilization rates, and capacity.",
+};
+
+function getDesc(node) {
+  if (DESC[node.id]) return DESC[node.id];
+  if (node.group === "customers")     return `Customer success story — how ${node.label} improved delivery speed, NPS, or utilization using Rocketlane.`;
+  if (node.group === "blog-post")     return `Blog article: "${node.label}" — published on the Rocketlane blog for PS and CS practitioners.`;
+  if (node.group === "blog-category") return `Blog category: ${node.label} — a curated collection of articles on this topic.`;
+  if (node.group === "resource")      return `Resource: "${node.label}" — a downloadable guide, report, or playbook for PS and onboarding teams.`;
+  return `${GROUPS[node.group]?.label || node.group} page — ${node.id}`;
+}
+
+// ── NODES ─────────────────────────────────────────────────────────────────────
+const rawNodes = [
+  { id: "/",                                            label: "rocketlane.com",       group: "home",     depth: 0 },
+  { id: "/agentic-psa",                                 label: "Agentic PSA",          group: "product",  depth: 1 },
+  { id: "/project-management-process",                  label: "Project Management",   group: "product",  depth: 1 },
+  { id: "/project-management-process/automations",      label: "Automations",          group: "product",  depth: 2 },
+  { id: "/project-management-process/partner-central",  label: "Partner Central",      group: "product",  depth: 2 },
+  { id: "/people-finance",                              label: "People & Finance",     group: "product",  depth: 1 },
+  { id: "/people-finance/resource-management-software", label: "Resource Management",  group: "product",  depth: 2 },
+  { id: "/people-finance/timetracking-software",        label: "Time Tracking",        group: "product",  depth: 2 },
+  { id: "/customer-portal-experience",                  label: "Customer Portal",      group: "product",  depth: 1 },
+  { id: "/reporting-and-dashboards",                    label: "Reporting & Dashboards",group: "product", depth: 1 },
+  { id: "/integrations",                                label: "Integrations",         group: "product",  depth: 1 },
+  { id: "/integrations/slack",                          label: "Slack",                group: "product",  depth: 2 },
+  { id: "/professional-services-automation-software",   label: "PSA Software",         group: "product",  depth: 1 },
+  { id: "/onboarding-implementation-software",          label: "Onboarding Software",  group: "product",  depth: 1 },
+  { id: "/nitro-agents",                                label: "Nitro Agents",         group: "product",  depth: 2 },
+  { id: "/aifills",                                     label: "AI Fills",             group: "product",  depth: 2 },
+  { id: "/nitropalooza",                                label: "Nitropalooza",         group: "product",  depth: 2 },
+  { id: "/customer-experience-accountability",          label: "CX Accountability",    group: "product",  depth: 2 },
+  { id: "/industry/saas-customer-onboarding",           label: "SaaS Onboarding",      group: "industry", depth: 1 },
+  { id: "/industry/fintech-customer-onboarding",        label: "Fintech Onboarding",   group: "industry", depth: 1 },
+  { id: "/industry/marketing-customer-onboarding",      label: "Marketing Onboarding", group: "industry", depth: 1 },
+  { id: "/industry/it-consultancy-psa-platform",        label: "IT Consultancy",       group: "industry", depth: 1 },
+  { id: "/compare/rocketlane-vs-guidecx",    label: "vs GuideCX",    group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-kantata",    label: "vs Kantata",    group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-certinia",   label: "vs Certinia",   group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-smartsheet", label: "vs Smartsheet", group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-planview",   label: "vs Planview",   group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-monday",     label: "vs Monday",     group: "compare", depth: 1 },
+  { id: "/compare/rocketlane-vs-asana",      label: "vs Asana",      group: "compare", depth: 1 },
+  { id: "/customers", label: "Customers", group: "customers", depth: 1 },
+  { id: "/customers/how-hapi-cloud-hit-85-billable-utilization-by-automating-their-implementation-processes", label: "Hapi Cloud",       group: "customers", depth: 2 },
+  { id: "/customers/how-fluxx-boosted-customer-engagement-and-hit-83-utilization",                              label: "Fluxx",            group: "customers", depth: 2 },
+  { id: "/customers/how-observe-ai-made-a-leap-to-the-professional-services-model-with-an-impressive-70-nps-score", label: "Observe.AI",    group: "customers", depth: 2 },
+  { id: "/customers/how-gamify-slashed-their-implementation-timelines-from-6-months-to-30-days-using-rocketlane", label: "Gamify",         group: "customers", depth: 2 },
+  { id: "/customers/how-gocardless-scaled-professional-services-to-deliver-59-faster-time-to-value",            label: "GoCardless",      group: "customers", depth: 2 },
+  { id: "/customers/how-supportlogic-accelerated-their-time-to-value-by-60-by-moving-from-guidecx-to-rocketlane", label: "SupportLogic",  group: "customers", depth: 2 },
+  { id: "/customers/seqera",                                                                                      label: "Seqera",          group: "customers", depth: 2 },
+  { id: "/customers/how-maintainx-scaled-to-1000--implementation-projects-with-rocketlane",                     label: "MaintainX",       group: "customers", depth: 2 },
+  { id: "/customers/how-kojo-cut-onboarding-time-by-75-with-rocketlane",                                        label: "Kojo",            group: "customers", depth: 2 },
+  { id: "/customers/how-graphite-reduced-onboarding-time-by-90-implementing-a-30k-client-in-just-26-hours",     label: "Graphite",        group: "customers", depth: 2 },
+  { id: "/customers/how-dwolla-achieved-90-customer-collaboration-success-rate-with-rocketlane",                label: "Dwolla",          group: "customers", depth: 2 },
+  { id: "/customers/how-firstup-boosted-delivery-efficiency-and-achieved-a-75-utilization-rate-using-rocketlane", label: "Firstup",       group: "customers", depth: 2 },
+  { id: "/customers/how-xceptor-streamlined-global-client-delivery-and-improved-financial-control-with-rocketlane", label: "Xceptor",    group: "customers", depth: 2 },
+  { id: "/customers/how-earthwise-pets-captures-100-of-franchise-commitments-with-rocketlanes-ai-teammate",    label: "Earthwise Pets",  group: "customers", depth: 2 },
+  { id: "/customers/how-dreher-consulting-cut-client-update-calls-by-66-and-reclaimed-hours-with-rocketlane",  label: "Dreher Consulting",group: "customers", depth: 2 },
+  { id: "/customers/how-yellow-ai-saves-over-50-000-hours-every-year-with-rocketlane",                         label: "Yellow.ai",       group: "customers", depth: 2 },
+  { id: "/customers/how-actabl-reduced-time-to-kickoff-by-88-and-cut-implementation-time-by-76",               label: "Actabl",          group: "customers", depth: 2 },
+  { id: "/customers/from-43-to-90-how-healthez-made-access-to-care-a-promise-it-could-keep",                   label: "HealthEZ",        group: "customers", depth: 2 },
+  { id: "/blogs", label: "Blog", group: "blogs", depth: 1 },
+  { id: "/blog-categories/professional-services", label: "Professional Services",  group: "blog-category", depth: 2 },
+  { id: "/blog-categories/resource-managament",   label: "Resource Management",    group: "blog-category", depth: 2 },
+  { id: "/blog-categories/project-management",    label: "Project Management",     group: "blog-category", depth: 2 },
+  { id: "/blog-categories/financial-management",  label: "Financial Management",   group: "blog-category", depth: 2 },
+  { id: "/blog-categories/competitor-landscape",  label: "Competitor Landscape",   group: "blog-category", depth: 2 },
+  { id: "/blog-categories/forward-deployed-engineer", label: "FDE",               group: "blog-category", depth: 2 },
+  { id: "/blog-categories/case-studies",          label: "Case Studies",           group: "blog-category", depth: 2 },
+  { id: "/blog-categories/customer-onboarding",   label: "Customer Onboarding",    group: "blog-category", depth: 2 },
+  { id: "/blog-categories/time-tracking",         label: "Time Tracking",          group: "blog-category", depth: 2 },
+  { id: "/blogs/best-psa-software",               label: "Best PSA Software",      group: "blog-post", depth: 3 },
+  { id: "/blogs/professional-services-kpis",      label: "PS KPIs",                group: "blog-post", depth: 3 },
+  { id: "/blogs/resource-planning-software",      label: "Resource Planning",      group: "blog-post", depth: 3 },
+  { id: "/blogs/the-state-of-customer-onboarding-2025", label: "State of Onboarding 2025", group: "blog-post", depth: 3 },
+  { id: "/blogs/vibe-ps-reimagining-professional-services-in-the-ai-era", label: "Vibe PS / AI Era", group: "blog-post", depth: 3 },
+  { id: "/blogs/legacy-psa-vs-rocketlane",        label: "Legacy PSA vs RL",       group: "blog-post", depth: 3 },
+  { id: "/blogs/series-c",                        label: "Series C",               group: "blog-post", depth: 3 },
+  { id: "/blogs/ai-and-automation-in-services",   label: "AI & Automation",        group: "blog-post", depth: 3 },
+  { id: "/blogs/partner-led-growth",              label: "Partner-Led Growth",     group: "blog-post", depth: 3 },
+  { id: "/blogs/psa-software-vs-project-management-software", label: "PSA vs PM Tools", group: "blog-post", depth: 3 },
+  { id: "/resources", label: "Resources", group: "resources", depth: 1 },
+  { id: "/resources/state-of-professional-services-2026", label: "State of PS 2026",         group: "resource", depth: 2 },
+  { id: "/resources/ai-professional-services",            label: "AI in PS",                  group: "resource", depth: 2 },
+  { id: "/resources/state-of-customer-onboarding-2025",   label: "State of Onboarding 2025",  group: "resource", depth: 2 },
+  { id: "/resources/the-case-for-a-next-gen-psa-in-2025", label: "Next-Gen PSA Guide",         group: "resource", depth: 2 },
+  { id: "/resources/resource-management-guide",           label: "Resource Mgmt Guide",        group: "resource", depth: 2 },
+  { id: "/resources/rocketlane-impact-report-2024",       label: "Impact Report 2024",         group: "resource", depth: 2 },
+  { id: "/resources/legacy-psa-vs-rocketlane",            label: "Legacy PSA vs RL",           group: "resource", depth: 2 },
+  { id: "/resources/salesforce-native-vs-non-native-psa", label: "Salesforce Native PSA",      group: "resource", depth: 2 },
+  { id: "/resources/roi-of-psa",                          label: "ROI of PSA",                 group: "resource", depth: 2 },
+  { id: "/resources/state-of-professional-services-2025", label: "State of PS 2025",           group: "resource", depth: 2 },
+  { id: "/resources/psa/capacity-planning",               label: "Capacity Planning",          group: "resource", depth: 2 },
+  { id: "/resources/psa/resource-management",             label: "Resource Management",        group: "resource", depth: 2 },
+  { id: "/resources/psa/project-billing-for-professional-services", label: "Project Billing", group: "resource", depth: 2 },
+  { id: "/resources/customer-onboarding/what-is-customer-onboarding", label: "What is Onboarding?", group: "resource", depth: 2 },
+  { id: "/resources/customer-onboarding/designing-the-ultimate-b2b-customer-onboarding-experience", label: "B2B Onboarding Design", group: "resource", depth: 2 },
+  { id: "/free-tools/customer-success-personality-test",  label: "CS Personality Test",        group: "resource", depth: 2 },
+  { id: "/free-tools/free-timesheet-calculator",          label: "Timesheet Calculator",       group: "resource", depth: 2 },
+  { id: "/maturity-model-report",                         label: "Maturity Model Report",      group: "resource", depth: 2 },
+  { id: "/tv",                  label: "Rocketlane TV",   group: "media", depth: 1 },
+  { id: "/podcast",             label: "Podcast",          group: "media", depth: 1 },
+  { id: "/events",              label: "Events",           group: "media", depth: 1 },
+  { id: "/propel26",            label: "Propel 26",        group: "media", depth: 2 },
+  { id: "/propel25/ideabook25", label: "Propel 25",        group: "media", depth: 2 },
+  { id: "/legal/terms",                     label: "Terms of Service",      group: "legal", depth: 1 },
+  { id: "/legal/privacy-policy",            label: "Privacy Policy",         group: "legal", depth: 1 },
+  { id: "/legal/data-processing-agreement", label: "DPA",                   group: "legal", depth: 1 },
+  { id: "/responsible-disclosure",          label: "Responsible Disclosure", group: "legal", depth: 1 },
+  { id: "/trust",                           label: "Trust",                  group: "legal", depth: 1 },
+  { id: "/privacy-policy",                  label: "Privacy (Legacy)",       group: "legal", depth: 1 },
+  { id: "/psclub",               label: "PS Club",        group: "community", depth: 1 },
+  { id: "/frontline-forum/home", label: "Frontline Forum", group: "community", depth: 1 },
+  { id: "/partners",             label: "Partners",        group: "community", depth: 1 },
+  { id: "/store",                label: "Store",           group: "community", depth: 1 },
+  { id: "/press",                label: "Press",           group: "community", depth: 1 },
+  { id: "/demo",          label: "Request Demo",  group: "action", depth: 1 },
+  { id: "/contact-sales", label: "Contact Sales", group: "action", depth: 1 },
+  { id: "/login",         label: "Login",          group: "action", depth: 1 },
+  { id: "/signup",        label: "Sign Up",        group: "action", depth: 1 },
+  { id: "/pricing",       label: "Pricing",        group: "action", depth: 1 },
+];
+
+// ── LINKS ─────────────────────────────────────────────────────────────────────
+const rawLinks = [
+  ["/","/agentic-psa"],["/","/project-management-process"],["/","/people-finance"],
+  ["/","/customer-portal-experience"],["/","/reporting-and-dashboards"],["/","/integrations"],
+  ["/","/professional-services-automation-software"],["/","/onboarding-implementation-software"],
+  ["/","/industry/saas-customer-onboarding"],["/","/industry/fintech-customer-onboarding"],
+  ["/","/industry/marketing-customer-onboarding"],["/","/industry/it-consultancy-psa-platform"],
+  ["/","/compare/rocketlane-vs-guidecx"],["/","/compare/rocketlane-vs-kantata"],
+  ["/","/compare/rocketlane-vs-certinia"],["/","/compare/rocketlane-vs-smartsheet"],
+  ["/","/compare/rocketlane-vs-planview"],["/","/compare/rocketlane-vs-monday"],
+  ["/","/compare/rocketlane-vs-asana"],["/","/customers"],["/","/blogs"],
+  ["/","/resources"],["/","/tv"],["/","/podcast"],["/","/events"],["/","/pricing"],
+  ["/","/demo"],["/","/contact-sales"],["/","/login"],["/","/signup"],
+  ["/","/partners"],["/","/psclub"],["/","/frontline-forum/home"],
+  ["/","/press"],["/","/store"],["/","/legal/terms"],["/","/legal/privacy-policy"],
+  ["/","/legal/data-processing-agreement"],["/","/responsible-disclosure"],
+  ["/","/privacy-policy"],["/","/trust"],
+  ["/project-management-process","/project-management-process/automations"],
+  ["/project-management-process","/project-management-process/partner-central"],
+  ["/project-management-process","/customer-experience-accountability"],
+  ["/people-finance","/people-finance/resource-management-software"],
+  ["/people-finance","/people-finance/timetracking-software"],
+  ["/integrations","/integrations/slack"],
+  ["/agentic-psa","/nitro-agents"],
+  ["/professional-services-automation-software","/aifills"],
+  ["/professional-services-automation-software","/nitropalooza"],
+  ["/customers","/customers/how-hapi-cloud-hit-85-billable-utilization-by-automating-their-implementation-processes"],
+  ["/customers","/customers/how-fluxx-boosted-customer-engagement-and-hit-83-utilization"],
+  ["/customers","/customers/how-observe-ai-made-a-leap-to-the-professional-services-model-with-an-impressive-70-nps-score"],
+  ["/customers","/customers/how-gamify-slashed-their-implementation-timelines-from-6-months-to-30-days-using-rocketlane"],
+  ["/customers","/customers/how-gocardless-scaled-professional-services-to-deliver-59-faster-time-to-value"],
+  ["/customers","/customers/how-supportlogic-accelerated-their-time-to-value-by-60-by-moving-from-guidecx-to-rocketlane"],
+  ["/customers","/customers/seqera"],
+  ["/customers","/customers/how-maintainx-scaled-to-1000--implementation-projects-with-rocketlane"],
+  ["/customers","/customers/how-kojo-cut-onboarding-time-by-75-with-rocketlane"],
+  ["/customers","/customers/how-graphite-reduced-onboarding-time-by-90-implementing-a-30k-client-in-just-26-hours"],
+  ["/customers","/customers/how-dwolla-achieved-90-customer-collaboration-success-rate-with-rocketlane"],
+  ["/customers","/customers/how-firstup-boosted-delivery-efficiency-and-achieved-a-75-utilization-rate-using-rocketlane"],
+  ["/customers","/customers/how-xceptor-streamlined-global-client-delivery-and-improved-financial-control-with-rocketlane"],
+  ["/customers","/customers/how-earthwise-pets-captures-100-of-franchise-commitments-with-rocketlanes-ai-teammate"],
+  ["/customers","/customers/how-dreher-consulting-cut-client-update-calls-by-66-and-reclaimed-hours-with-rocketlane"],
+  ["/customers","/customers/how-yellow-ai-saves-over-50-000-hours-every-year-with-rocketlane"],
+  ["/customers","/customers/how-actabl-reduced-time-to-kickoff-by-88-and-cut-implementation-time-by-76"],
+  ["/customers","/customers/from-43-to-90-how-healthez-made-access-to-care-a-promise-it-could-keep"],
+  ["/blogs","/blog-categories/professional-services"],
+  ["/blogs","/blog-categories/resource-managament"],
+  ["/blogs","/blog-categories/project-management"],
+  ["/blogs","/blog-categories/financial-management"],
+  ["/blogs","/blog-categories/competitor-landscape"],
+  ["/blogs","/blog-categories/forward-deployed-engineer"],
+  ["/blogs","/blog-categories/case-studies"],
+  ["/blogs","/blog-categories/customer-onboarding"],
+  ["/blogs","/blog-categories/time-tracking"],
+  ["/blogs","/blogs/best-psa-software"],
+  ["/blogs","/blogs/professional-services-kpis"],
+  ["/blogs","/blogs/resource-planning-software"],
+  ["/blogs","/blogs/the-state-of-customer-onboarding-2025"],
+  ["/blogs","/blogs/vibe-ps-reimagining-professional-services-in-the-ai-era"],
+  ["/blogs","/blogs/legacy-psa-vs-rocketlane"],
+  ["/blogs","/blogs/series-c"],
+  ["/blogs","/blogs/ai-and-automation-in-services"],
+  ["/blogs","/blogs/partner-led-growth"],
+  ["/blogs","/blogs/psa-software-vs-project-management-software"],
+  ["/resources","/resources/state-of-professional-services-2026"],
+  ["/resources","/resources/ai-professional-services"],
+  ["/resources","/resources/state-of-customer-onboarding-2025"],
+  ["/resources","/resources/the-case-for-a-next-gen-psa-in-2025"],
+  ["/resources","/resources/resource-management-guide"],
+  ["/resources","/resources/rocketlane-impact-report-2024"],
+  ["/resources","/resources/legacy-psa-vs-rocketlane"],
+  ["/resources","/resources/salesforce-native-vs-non-native-psa"],
+  ["/resources","/resources/roi-of-psa"],
+  ["/resources","/resources/state-of-professional-services-2025"],
+  ["/resources","/resources/psa/capacity-planning"],
+  ["/resources","/resources/psa/resource-management"],
+  ["/resources","/resources/psa/project-billing-for-professional-services"],
+  ["/resources","/resources/customer-onboarding/what-is-customer-onboarding"],
+  ["/resources","/resources/customer-onboarding/designing-the-ultimate-b2b-customer-onboarding-experience"],
+  ["/resources","/free-tools/customer-success-personality-test"],
+  ["/resources","/free-tools/free-timesheet-calculator"],
+  ["/resources","/maturity-model-report"],
+  ["/events","/propel26"],
+  ["/events","/propel25/ideabook25"],
+];
+
+// ── BUILD GRAPH DATA ──────────────────────────────────────────────────────────
+const nodeMap = new Map(rawNodes.map(n => [n.id, n]));
+const nodes   = rawNodes.map(n => ({ ...n, color: GROUPS[n.group]?.color || "#6B7280", r: n.depth===0?20:n.depth===1?11:n.depth===2?7:5 }));
+const linkData = rawLinks.filter(([s,t]) => nodeMap.has(s) && nodeMap.has(t)).map(([source,target]) => ({source,target}));
+
+// Adjacency (string IDs)
+const outgoing = new Map();  // id → Set of target ids
+const incoming = new Map();  // id → Set of source ids
+nodes.forEach(n => { outgoing.set(n.id, new Set()); incoming.set(n.id, new Set()); });
+rawLinks.forEach(([s,t]) => {
+  if (nodeMap.has(s) && nodeMap.has(t)) {
+    outgoing.get(s).add(t);
+    incoming.get(t).add(s);
+  }
+});
+const neighbors = id => new Set([...outgoing.get(id)||[], ...incoming.get(id)||[]]);
+
+// ── D3 SETUP ──────────────────────────────────────────────────────────────────
+const svgEl  = d3.select("#graph");
+const W = () => { const r = svgEl.node().getBoundingClientRect(); return r.width  || svgEl.node().parentNode.clientWidth  || window.innerWidth; };
+const H = () => { const r = svgEl.node().getBoundingClientRect(); return r.height || svgEl.node().parentNode.clientHeight || (window.innerHeight - 52); };
+
+const defs = svgEl.append("defs");
+// Dot grid
+const pat = defs.append("pattern").attr("id","dotgrid").attr("width",28).attr("height",28).attr("patternUnits","userSpaceOnUse");
+pat.append("circle").attr("cx",1).attr("cy",1).attr("r",0.7).attr("fill","rgba(255,255,255,0.035)");
+// Glow filters
+[...new Set(nodes.map(n=>n.color))].forEach(c => {
+  const fid = "glow-"+c.replace("#","");
+  const f = defs.append("filter").attr("id",fid).attr("x","-60%").attr("y","-60%").attr("width","220%").attr("height","220%");
+  f.append("feGaussianBlur").attr("in","SourceGraphic").attr("stdDeviation","4").attr("result","blur");
+  const m = f.append("feMerge");
+  m.append("feMergeNode").attr("in","blur");
+  m.append("feMergeNode").attr("in","SourceGraphic");
+});
+
+svgEl.append("rect").attr("width","100%").attr("height","100%").attr("fill","url(#dotgrid)");
+const g = svgEl.append("g").attr("class","zoom-g");
+
+const zoom = d3.zoom().scaleExtent([0.1,5]).on("zoom", ev => g.attr("transform", ev.transform));
+svgEl.call(zoom).on("dblclick.zoom", null);
+
+// Click background to deselect
+svgEl.on("click", (ev) => { if (ev.target === svgEl.node() || ev.target.tagName === "rect") deselect(); });
+
+// Simulation
+const sim = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(linkData).id(d=>d.id)
+    .distance(d => { const t=nodeMap.get(d.target.id??d.target); return t?.depth===0?170:t?.depth===2?85:t?.depth===3?65:110; })
+    .strength(0.45))
+  .force("charge", d3.forceManyBody().strength(d => d.depth===0?-700:d.depth===1?-220:d.depth===2?-90:-55))
+  .force("center", d3.forceCenter(0,0))
+  .force("collide", d3.forceCollide(d=>d.r+5).strength(0.8));
+
+// Links
+const linkG   = g.append("g").attr("class","links-g");
+const linkSel = linkG.selectAll("line").data(linkData).join("line")
+  .attr("class","link")
+  .attr("stroke", d => { const s=nodeMap.get(d.source.id??d.source); return s?.color||"#fff"; })
+  .attr("stroke-opacity", d => { const s=nodeMap.get(d.source.id??d.source); return s?.depth===0?0.35:0.18; })
+  .attr("stroke-width", d => { const s=nodeMap.get(d.source.id??d.source); return s?.depth===0?1.4:0.9; });
+
+// Nodes
+const nodeG   = g.append("g").attr("class","nodes-g");
+const nodeSel = nodeG.selectAll(".node").data(nodes).join("g")
+  .attr("class","node")
+  .call(d3.drag()
+    .on("start",(ev,d)=>{ if(!ev.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+    .on("drag", (ev,d)=>{ d.fx=ev.x; d.fy=ev.y; })
+    .on("end",  (ev,d)=>{ if(!ev.active) sim.alphaTarget(0); d.fx=null; d.fy=null; }))
+  .on("mouseover", onHover)
+  .on("mousemove", onMove)
+  .on("mouseout",  onOut)
+  .on("click",     onNodeClick);
+
+// Pulse ring on root
+const pulseG = nodeSel.filter(d => d.id === "/");
+const ring   = pulseG.append("circle").attr("r",20).attr("fill","none").attr("stroke","#F9D64C").attr("stroke-width",1.5).attr("stroke-opacity",0.5);
+(function pulse() {
+  ring.transition().duration(1600).attr("r",38).attr("stroke-opacity",0)
+    .on("end",()=>{ ring.attr("r",20).attr("stroke-opacity",0.5); setTimeout(pulse,400); });
+})();
+
+// Circles
+nodeSel.append("circle")
+  .attr("r", d=>d.r)
+  .attr("fill", d => d.color+(d.depth===0?"FF":d.depth===1?"E0":d.depth===2?"99":"66"))
+  .attr("stroke", d=>d.color)
+  .attr("stroke-width", 1.2)
+  .attr("stroke-opacity", d=>d.depth<=1?0.7:0.45)
+  .attr("filter", d=>d.depth<=1?`url(#glow-${d.color.replace("#","")})`:"");
+
+// Labels
+nodeSel.append("text")
+  .attr("dy", d=>d.r+11).attr("text-anchor","middle")
+  .attr("fill", d=>d.depth===0?"#F1F5F9":d.depth===1?"#94A3B8":"#475569")
+  .attr("font-size", d=>d.depth===0?12:d.depth===1?10:9)
+  .attr("font-weight", d=>d.depth<=1?600:400)
+  .text(d=>d.label)
+  .style("display", d=>d.depth>=3?"none":null);
+
+sim.on("tick",()=>{
+  linkSel.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+  nodeSel.attr("transform",d=>`translate(${d.x},${d.y})`);
+});
+sim.on("end",()=>fitGraph(1000));
+
+// ── SELECTION STATE ───────────────────────────────────────────────────────────
+let selectedId = null;
+
+function selectNode(d) {
+  selectedId = d.id;
+  const nb = neighbors(d.id);
+
+  // Graph highlighting
+  nodeSel.each(function(n) {
+    const rel = n.id===d.id || nb.has(n.id);
+    d3.select(this).classed("selected", n.id===d.id).classed("dimmed",!rel);
+    if (n.depth>=3) d3.select(this).select("text").style("display", rel?"null":"none");
+  });
+  linkSel.each(function(l) {
+    const s=l.source.id, t=l.target.id;
+    const rel = s===d.id||t===d.id;
+    d3.select(this).classed("lit",rel).classed("dimmed",!rel);
+  });
+
+  // Raise selected node
+  nodeSel.filter(n=>n.id===d.id).raise();
+
+  // Open panel
+  openPanel(d);
+}
+
+function deselect() {
+  selectedId = null;
+  nodeSel.classed("selected",false).classed("dimmed",false);
+  linkSel.classed("lit",false).classed("dimmed",false);
+  nodeSel.filter(d=>d.depth>=3).select("text").style("display","none");
+  closePanel();
+}
+
+function focusNode(id) {
+  const node = nodes.find(n=>n.id===id);
+  if (!node) return;
+  const t = d3.zoomTransform(svgEl.node());
+  const newTx = W()/2 - t.k*node.x;
+  const newTy = H()/2 - t.k*node.y;
+  svgEl.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(newTx,newTy).scale(t.k));
+  selectNode(node);
+}
+
+// ── PANEL ─────────────────────────────────────────────────────────────────────
+function openPanel(d) {
+  const g = GROUPS[d.group];
+
+  document.getElementById("panel-badge").textContent  = g?.label||d.group;
+  document.getElementById("panel-badge").style.color  = d.color;
+  document.getElementById("panel-depth-tag").textContent = DEPTH_LABEL[d.depth]||("Level "+d.depth);
+  document.getElementById("panel-title").textContent  = d.label;
+  document.getElementById("panel-url").textContent    = d.id;
+  document.getElementById("panel-desc").textContent   = getDesc(d);
+
+  // Visit / copy
+  document.getElementById("btn-visit").onclick = () => window.open("https://www.rocketlane.com"+d.id,"_blank");
+  document.getElementById("btn-copy").onclick  = () => { navigator.clipboard.writeText("https://www.rocketlane.com"+d.id); document.getElementById("btn-copy").textContent="Copied ✓"; setTimeout(()=>document.getElementById("btn-copy").textContent="Copy URL",1500); };
+
+  // Incoming
+  const fromIds = [...(incoming.get(d.id)||[])];
+  document.getElementById("from-count").textContent = fromIds.length;
+  const fromList = document.getElementById("from-list");
+  fromList.innerHTML = "";
+  fromIds.forEach(sid => {
+    const sn = nodeMap.get(sid);
+    if (!sn) return;
+    fromList.appendChild(makeChip(sn, "← "));
+  });
+
+  // Outgoing
+  const toIds = [...(outgoing.get(d.id)||[])];
+  document.getElementById("to-count").textContent = toIds.length;
+  const toList = document.getElementById("to-list");
+  toList.innerHTML = "";
+  toIds.forEach(tid => {
+    const tn = nodeMap.get(tid);
+    if (!tn) return;
+    toList.appendChild(makeChip(tn, "→ "));
+  });
+
+  document.getElementById("panel").classList.add("open");
+  document.getElementById("graph-container").classList.add("panel-open");
+  document.getElementById("controls").classList.add("panel-open");
+  document.getElementById("depth-key").classList.add("panel-open");
+}
+
+function closePanel() {
+  document.getElementById("panel").classList.remove("open");
+  document.getElementById("graph-container").classList.remove("panel-open");
+  document.getElementById("controls").classList.remove("panel-open");
+  document.getElementById("depth-key").classList.remove("panel-open");
+}
+
+function makeChip(n, dir) {
+  const chip = document.createElement("div");
+  chip.className = "conn-chip";
+  chip.innerHTML = `
+    <div class="conn-dot" style="background:${n.color}"></div>
+    <span class="conn-label">${n.label}</span>
+    <span class="conn-group">${GROUPS[n.group]?.label||n.group}</span>
+    <span class="conn-arrow">${dir}</span>`;
+  chip.addEventListener("click", () => focusNode(n.id));
+  return chip;
+}
+
+document.getElementById("panel-close").addEventListener("click", deselect);
+
+// ── TOOLTIP ───────────────────────────────────────────────────────────────────
+const tt = document.getElementById("tooltip");
+let tooltipActive = false;
+
+function onHover(event, d) {
+  if (selectedId) return; // panel open — suppress entirely
+  // If a legend group is active, only show tooltip — don't touch dim state
+  if (!activeGroup) {
+    const nb = neighbors(d.id);
+    nodeSel.each(function(n) { d3.select(this).classed("dimmed", n.id!==d.id && !nb.has(n.id)); });
+    linkSel.each(function(l) { const s=l.source.id,t=l.target.id; d3.select(this).classed("lit",s===d.id||t===d.id).classed("dimmed",s!==d.id&&t!==d.id); });
+  }
+  tt.querySelector(".tt-label").textContent = d.label;
+  tt.querySelector(".tt-sub").textContent   = GROUPS[d.group]?.label+" · "+DEPTH_LABEL[d.depth]+" · click to explore";
+  positionTT(event);
+  tt.classList.add("show");
+  tooltipActive = true;
+}
+function onMove(event) { if (tooltipActive && !selectedId) positionTT(event); }
+function onOut() {
+  if (!selectedId && !activeGroup) {
+    nodeSel.classed("dimmed",false);
+    linkSel.classed("lit",false).classed("dimmed",false);
+  }
+  tt.classList.remove("show");
+  tooltipActive = false;
+}
+function positionTT(event) {
+  let x = event.clientX+16, y = event.clientY-8;
+  if (x+220>window.innerWidth) x = event.clientX-230;
+  tt.style.left = x+"px"; tt.style.top = y+"px";
+}
+
+function onNodeClick(event, d) {
+  if (event.defaultPrevented) return; // was a drag
+  event.stopPropagation();
+  tt.classList.remove("show");
+  tooltipActive = false;
+  if (selectedId===d.id) { deselect(); return; }
+  selectNode(d);
+  // Pan so node isn't hidden behind panel
+  const t = d3.zoomTransform(svgEl.node());
+  const panelW = document.getElementById("panel").offsetWidth;
+  const availW = W() - panelW;
+  const nx = t.applyX(d.x);
+  if (nx > availW*0.8 || nx < availW*0.2) {
+    const newTx = availW/2 - t.k*d.x;
+    const newTy = H()/2   - t.k*d.y;
+    svgEl.transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(newTx,newTy).scale(t.k));
+  }
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+document.getElementById("search-box").addEventListener("input", function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) { nodeSel.classed("dimmed",false); linkSel.classed("dimmed",false); return; }
+  const hits = new Set(nodes.filter(n=>n.label.toLowerCase().includes(q)||n.id.toLowerCase().includes(q)).map(n=>n.id));
+  nodeSel.each(function(n) { d3.select(this).classed("dimmed",!hits.has(n.id)); });
+  linkSel.classed("dimmed",true);
+});
+
+// ── LEGEND ────────────────────────────────────────────────────────────────────
+const legendEl = document.getElementById("legend");
+const groupCnt = {};
+nodes.forEach(n=>{ groupCnt[n.group]=(groupCnt[n.group]||0)+1; });
+let activeGroup = null;
+
+Object.entries(GROUPS).forEach(([key,val]) => {
+  const cnt = groupCnt[key]; if (!cnt) return;
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  item.dataset.group = key;
+  item.innerHTML = `<div class="legend-dot" style="background:${val.color}"></div><span class="legend-label">${val.label}</span><span class="legend-count">${cnt}</span>`;
+  item.addEventListener("click", () => {
+    if (selectedId) deselect();
+    if (activeGroup === key) {
+      // Toggle off — restore everything
+      activeGroup = null;
+      document.querySelectorAll('.legend-item').forEach(el => el.classList.remove("muted","active"));
+      nodeSel.classed("dimmed", false);
+      linkSel.classed("dimmed", false).classed("lit", false);
+    } else {
+      // Highlight this group, dim everything else
+      activeGroup = key;
+      document.querySelectorAll('.legend-item').forEach(el => {
+        el.classList.toggle("muted",   el.dataset.group !== key);
+        el.classList.toggle("active",  el.dataset.group === key);
+      });
+      nodeSel.each(function(n) { d3.select(this).classed("dimmed", n.group !== key); });
+      linkSel.each(function(l) {
+        const sg = nodeMap.get(l.source.id)?.group, tg = nodeMap.get(l.target.id)?.group;
+        const rel = sg === key || tg === key;
+        d3.select(this).classed("lit", rel).classed("dimmed", !rel);
+      });
+    }
+  });
+  legendEl.appendChild(item);
+});
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+document.getElementById("stats").textContent = `${nodes.length} nodes · ${linkData.length} links`;
+
+// ── CONTROLS ─────────────────────────────────────────────────────────────────
+function fitGraph(dur=500) {
+  const b = g.node().getBBox(); if (!b.width||!b.height) return;
+  const w = W(), h = H();
+  const sc = 0.82*Math.min(w/b.width, h/b.height);
+  if (!sc || sc <= 0) return;
+  const tx = w/2 - sc*(b.x+b.width/2);
+  const ty = h/2 - sc*(b.y+b.height/2);
+  svgEl.transition().duration(dur).call(zoom.transform, d3.zoomIdentity.translate(tx,ty).scale(sc));
+}
+document.getElementById("btn-fit").addEventListener("click",    ()=>fitGraph(500));
+document.getElementById("btn-zoomin").addEventListener("click", ()=>svgEl.transition().duration(250).call(zoom.scaleBy,1.5));
+document.getElementById("btn-zoomout").addEventListener("click",()=>svgEl.transition().duration(250).call(zoom.scaleBy,0.67));
+
+document.addEventListener("keydown",e=>{
+  if (["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+  if (e.key==="="||e.key==="+") svgEl.transition().duration(200).call(zoom.scaleBy,1.3);
+  if (e.key==="-")               svgEl.transition().duration(200).call(zoom.scaleBy,0.77);
+  if (e.key==="0")               fitGraph(400);
+  if (e.key==="Escape")          deselect();
+  if (e.key==="/"||e.key==="f"){ document.getElementById("search-box").focus(); e.preventDefault(); }
+});
+</script>
+</body>
+</html>
